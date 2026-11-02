@@ -1,0 +1,11 @@
+# Installs the host proxy and the official conversation footer contribution.
+- insert:
+    - id: sub2api-usage-view
+      name: dsh-sub2api-usage-view
+      config:
+        enabled: true
+        baseURL: ''
+        adminKeyRef: SUB2API_ADMIN_KEY
+        accountId: ''
+        refreshSeconds: 60
+        usageSource: auto
