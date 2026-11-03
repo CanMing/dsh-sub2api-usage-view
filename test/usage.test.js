@@ -102,18 +102,57 @@ test('default polling reads only saved snapshots with secret host-side and no pr
   h.service.dispose();
 });
 
-test('cache deduplicates sessions, expires, and bounds manual refresh', async () => {
-  const h = harness();
+test('automatic reads use snapshots; manual refresh queries active usage and is cooldown-bounded', async () => {
+  const h = harness({ fetch: async url => {
+    if (url.includes('/usage?')) return Response.json({ code: 0, data: {
+      five_hour: { utilization: 35, resets_at: '2026-11-02T18:00:00Z' },
+      seven_day: { utilization: 62, resets_at: '2026-11-05T15:00:00Z' },
+    } });
+    return Response.json({ code: 0, data: account });
+  } });
   await Promise.all([h.service.usage(), h.service.usage(), h.service.usage()]);
   assert.equal(h.calls.length, 1);
-  await h.service.usage({ refresh: true });
+  assert.equal((await h.service.usage()).source, 'snapshot');
   assert.equal(h.calls.length, 1);
+
+  const refreshed = await h.service.usage({ refresh: true });
+  assert.equal(refreshed.source, 'active');
+  assert.equal(refreshed.windows.fiveHour.remainingPercent, 65);
+  assert.equal(refreshed.windows.sevenDay.remainingPercent, 38);
+  assert.match(h.calls[2].url, /accounts\/7\/usage\?source=active$/);
+  assert.doesNotMatch(h.calls[2].url, /force=/);
+  assert.equal(refreshed.stale, false);
+  assert.ok(refreshed.manualRefreshAvailableAt);
+  assert.equal(h.calls.length, 3);
+
+  const throttled = await h.service.usage({ refresh: true });
+  assert.equal(h.calls.length, 3);
+  assert.equal(throttled.source, 'active');
+  assert.ok(throttled.manualRefreshAvailableAt);
   h.advance(10_001);
   await h.service.usage({ refresh: true });
-  assert.equal(h.calls.length, 2);
+  assert.equal(h.calls.length, 5);
+
   h.advance(60_001);
-  await h.service.usage();
-  assert.equal(h.calls.length, 3);
+  assert.equal((await h.service.usage()).source, 'snapshot');
+  assert.equal(h.calls.length, 6);
+});
+
+test('a later empty snapshot preserves the most recent active result instead of blanking the meter', async () => {
+  let active = false;
+  const h = harness({ fetch: async url => {
+    if (url.includes('/usage?')) { active = true; return Response.json({ code: 0, data: { five_hour: { utilization: 30, resets_at: '2026-11-02T18:00:00Z' } } }); }
+    return Response.json({ code: 0, data: active ? { ...account, extra: {} } : { ...account, extra: {} } });
+  } });
+  const queried = await h.service.usage({ refresh: true });
+  assert.equal(queried.source, 'active');
+  assert.equal(queried.windows.fiveHour.remainingPercent, 70);
+  h.advance(60_001);
+  const scheduled = await h.service.usage();
+  assert.equal(scheduled.source, 'active');
+  assert.equal(scheduled.windows.fiveHour.remainingPercent, 70);
+  assert.equal(scheduled.stale, true);
+  assert.match(scheduled.error, /保留上次主动查询/);
 });
 
 test('credential and account changes never reuse another identity snapshot', async () => {
@@ -149,6 +188,31 @@ test('expired samples stay expired; disabled/unconfigured plugins make no upstre
   h.setConfig({ enabled: false }); await h.service.usage();
   h.setConfig({ enabled: true }); h.setKey(''); await h.service.usage();
   assert.equal(h.calls.length, 1);
+});
+
+test('manual refresh selects the supported live source for Claude OAuth and saved data for setup-token', async () => {
+  for (const type of ['oauth', 'setup-token']) {
+    const claude = { id: 7, name: 'Claude', platform: 'anthropic', type, extra: { passive_usage_sampled_at: '2026-11-02T15:00:00Z' } };
+    const h = harness({ fetch: async url => Response.json({ code: 0, data: url.includes('/usage?')
+      ? { five_hour: { utilization: 20, resets_at: '2026-11-02T18:00:00Z' }, seven_day: { utilization: 40, resets_at: '2026-11-05T15:00:00Z' } }
+      : claude }) });
+    const result = await h.service.usage({ refresh: true });
+    assert.equal(result.source, type === 'oauth' ? 'active' : 'passive');
+    assert.ok(h.calls.some(call => call.url.endsWith(`/usage?source=${result.source}`)));
+  }
+});
+
+test('active query results without a sample timestamp are shown as query-only, not silently marked old', async () => {
+  const noSample = { ...account, extra: {} };
+  const h = harness({ fetch: async url => Response.json({ code: 0, data: url.includes('/usage?')
+    ? { updated_at: '2026-11-02T15:00:00Z', five_hour: { utilization: 25, resets_at: '2026-11-02T18:00:00Z' } }
+    : noSample }) });
+  const result = await h.service.usage({ refresh: true });
+  assert.equal(result.windows.fiveHour.remainingPercent, 75);
+  assert.equal(result.observedAt, null);
+  assert.equal(result.sampleTimeUnknown, true);
+  assert.equal(result.stale, false);
+  assert.equal(result.error, null);
 });
 
 test('active is explicitly selected and never uses force; passive Codex is refused', async () => {

@@ -147,24 +147,19 @@ test('request timeout aborts fetch and publishes a retryable message', async () 
   assert.equal(store.getSnapshot().loading, false); assert.match(store.getSnapshot().error, /超时/); off(); store.dispose();
 });
 
-test('a window without data shows no fake countdown and is named as missing', () => {
+test('expired window retains last known usage and UI exposes active-refresh warning and cooldown', () => {
   const env = runtime(); const store = new env.client.UsageStore();
-  store.publish({ data: { ...usage, windows: { fiveHour: { remainingPercent: null, resetAt: null }, sevenDay: { remainingPercent: 65, resetAt: new Date(200000).toISOString() } } }, now: 100000 });
-  const view = env.client.UsageDock({ store });
-  const windows = walk(view, (node) => node.props?.className === 'sub2api-usage__window');
-  assert.equal(windows.length, 2);
-  assert.equal(windows[0].props['aria-label'], '5小时暂无数据');
-  assert.equal(strings(windows[0]).trim(), '5小时 未知');
-  assert.equal(walk(windows[0], (node) => node.props?.className === 'sub2api-usage__time').length, 0);
-  assert.equal(walk(windows[1], (node) => node.props?.className === 'sub2api-usage__time').length, 1);
-  store.dispose();
-});
-
-test('expired window retains last known usage and UI exposes details and accessible refresh', () => {
-  const env = runtime(); const store = new env.client.UsageStore(); store.publish({ data: usage, now: 200000 });
+  store.publish({ data: { ...usage, manualRefreshAvailableAt: new Date(205000).toISOString() }, now: 200000 });
   const view = env.client.UsageDock({ store }); const text = strings(view);
   assert.match(text, /42.5%/); assert.match(text, /等待刷新/); assert.match(text, /旧数据/); assert.match(text, /测试账号/);
-  assert.equal(walk(view, (node) => node.type === 'button')[0].props['aria-label'], '刷新账号用量');
+  const refresh = walk(view, (node) => node.type === 'button')[0].props;
+  assert.equal(refresh['aria-label'], '刷新账号用量');
+  assert.equal(refresh.disabled, true);
+  assert.match(refresh.title, /5 秒/);
+  store.publish({ data: { ...usage, source: 'active', sampleTimeUnknown: true }, now: 200000 });
+  const activeView = env.client.UsageDock({ store });
+  assert.match(activeView.props.title, /上游未提供采集时间/);
+  assert.match(walk(activeView, (node) => node.type === 'button')[0].props.title, /Codex 可能触发/);
   store.publish({ data: { enabled: true, configured: false } }); assert.match(strings(env.client.UsageDock({ store })), /插件设置/);
   store.publish({ data: { enabled: false } }); assert.equal(env.client.UsageDock({ store }), null); store.dispose();
 });

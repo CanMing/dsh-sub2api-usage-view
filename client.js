@@ -198,9 +198,13 @@ export function UsageDock({ store }) {
   let fetched = '尚未获取';
   if (typeof data?.fetchedAt === 'string' && Number.isFinite(Date.parse(data.fetchedAt))) fetched = new Date(data.fetchedAt).toLocaleString('zh-CN');
   const observed = typeof data?.observedAt === 'string' && Number.isFinite(Date.parse(data.observedAt)) ? new Date(data.observedAt).toLocaleString('zh-CN') : null;
-  const missing = data?.configured && data?.accountId ? [five.percent === null ? '5小时' : null, seven.percent === null ? '7天' : null].filter(Boolean) : [];
-  const detail = [`账号：${data?.accountName || data?.accountId || '尚未选择'}${data?.platform ? ` · ${data.platform}` : ''}`, `上次获取：${fetched}`, observed ? `用量采集：${observed}` : '', missing.length ? `未采集窗口：${missing.join('、')}。可把用量源改为主动后刷新。` : '', stale ? '当前为旧数据，等待刷新。' : '', data?.error || error || ''].filter(Boolean).join('\n');
-  const renderWindow = (label, view) => h('span', { className: 'sub2api-usage__window', key: label, 'aria-label': view.percent === null ? `${label}暂无数据` : `${label}剩余${view.text}，${view.reset}` },
+  const sourceLabel = data?.source === 'active' ? '主动用量接口' : data?.source === 'passive' ? 'Claude 被动接口' : data?.source === 'snapshot' ? '后台已保存快照' : '';
+  const sampleLabel = observed ? `用量采集：${observed}` : data?.source === 'active' ? '上游未提供采集时间；显示本次主动查询返回值。' : data?.source === 'snapshot' ? '后台未记录采集时间。' : '';
+  const manualRefreshAt = typeof data?.manualRefreshAvailableAt === 'string' ? Date.parse(data.manualRefreshAvailableAt) : NaN;
+  const manualRefreshWait = Number.isFinite(manualRefreshAt) ? Math.max(0, Math.ceil((manualRefreshAt - now) / 1000)) : 0;
+  const refreshTitle = loading ? '正在查询用量…' : manualRefreshWait > 0 ? `请等待 ${manualRefreshWait} 秒后再次主动查询` : '主动查询最新用量；Codex 可能触发 sub2api 上游用量探测';
+  const detail = [`账号：${data?.accountName || data?.accountId || '尚未选择'}${data?.platform ? ` · ${data.platform}` : ''}`, sourceLabel ? `用量来源：${sourceLabel}` : '', `上次获取：${fetched}`, sampleLabel, stale ? '当前为旧数据，等待刷新。' : '', data?.error || error || ''].filter(Boolean).join('\n');
+  const renderWindow = (label, view) => h('span', { className: 'sub2api-usage__window', key: label, 'aria-label': `${label}剩余${view.text}，${view.reset}` },
     h('span', null, label), h('span', { className: 'sub2api-usage__value' }, view.text),
     view.percent === null ? null : h('span', { className: 'sub2api-usage__bar', 'aria-hidden': true }, h('span', { className: 'sub2api-usage__fill', style: { width: `${view.percent}%` } })),
     view.percent === null ? null : h('span', { className: 'sub2api-usage__time' }, view.reset));
@@ -208,7 +212,7 @@ export function UsageDock({ store }) {
     h('style', null, dockCSS), h('span', { className: 'sub2api-usage__title' }, 'Sub2API'),
     prompt ? h('span', { role: 'status' }, prompt) : !data && loading ? h('span', { role: 'status' }, '正在读取用量…')
       : h(React.Fragment, null, renderWindow('5小时', five), renderWindow('7天', seven)),
-    h('button', { type: 'button', className: 'sub2api-usage__button', disabled: loading, 'aria-label': '刷新账号用量', title: '刷新用量缓存', onClick: () => void store.load(true) },
+    h('button', { type: 'button', className: 'sub2api-usage__button', disabled: loading || manualRefreshWait > 0, 'aria-label': '刷新账号用量', title: refreshTitle, onClick: () => void store.load(true) },
       h('svg', { viewBox: '0 0 24 24', width: 14, height: 14, fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, 'aria-hidden': true },
         h('path', { d: 'M20 7v5h-5M4 17v-5h5M6.2 7a7 7 0 0 1 11.6-1L20 9M4 15l2.2 3A7 7 0 0 0 17.8 17', strokeLinecap: 'round', strokeLinejoin: 'round' }))),
     h('details', null, h('summary', { 'aria-label': '查看用量详情' }, error || data?.error ? '读取异常' : stale ? '旧数据' : '详情'), h('p', { className: 'sub2api-usage__details' }, detail)));
@@ -220,7 +224,7 @@ const fields = [
   { field: 'adminKeyRef', label: '管理密钥凭据名称', hint: '默认 SUB2API_ADMIN_KEY。密钥仅通过 DSH 凭据存储保存。' },
   { field: 'accountId', label: '账号 ID', hint: '可从下方账号列表选择，或直接填写数字 ID。留空时提示先选择账号。' },
   { field: 'refreshSeconds', label: '刷新间隔（秒）', hint: '默认 60 秒，范围 30–3600 秒。倒计时每秒在本地更新，隐藏页面时暂停请求。', numeric: true },
-  { field: 'usageSource', label: '用量来源', hint: '自动读取已采集的账号快照。主动模式可能触发上游用量探测，Claude 被动模式读取被动采集数据。', options: [['auto', '自动（读取已采集快照，推荐）'], ['active', '主动（可能触发上游用量探测）'], ['passive', 'Claude 被动']] },
+  { field: 'usageSource', label: '用量来源', hint: '自动模式定时读取已采集快照；点输入框下方刷新按钮会主动查询。Codex 主动查询可能触发上游用量探测。', options: [['auto', '自动（定时快照，推荐）'], ['active', '主动（每次刷新间隔均查询，可能触发探测）'], ['passive', 'Claude 被动快照']] },
 ];
 const formStyle = {
   field: { display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 0' },
