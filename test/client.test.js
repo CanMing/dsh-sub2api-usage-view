@@ -147,6 +147,19 @@ test('request timeout aborts fetch and publishes a retryable message', async () 
   assert.equal(store.getSnapshot().loading, false); assert.match(store.getSnapshot().error, /超时/); off(); store.dispose();
 });
 
+test('a window without data shows no fake countdown and is named as missing', () => {
+  const env = runtime(); const store = new env.client.UsageStore();
+  store.publish({ data: { ...usage, windows: { fiveHour: { remainingPercent: null, resetAt: null }, sevenDay: { remainingPercent: 65, resetAt: new Date(200000).toISOString() } } }, now: 100000 });
+  const view = env.client.UsageDock({ store });
+  const windows = walk(view, (node) => node.props?.className === 'sub2api-usage__window');
+  assert.equal(windows.length, 2);
+  assert.equal(windows[0].props['aria-label'], '5小时暂无数据');
+  assert.equal(strings(windows[0]).trim(), '5小时 未知');
+  assert.equal(walk(windows[0], (node) => node.props?.className === 'sub2api-usage__time').length, 0);
+  assert.equal(walk(windows[1], (node) => node.props?.className === 'sub2api-usage__time').length, 1);
+  store.dispose();
+});
+
 test('expired window retains last known usage and UI exposes details and accessible refresh', () => {
   const env = runtime(); const store = new env.client.UsageStore(); store.publish({ data: usage, now: 200000 });
   const view = env.client.UsageDock({ store }); const text = strings(view);

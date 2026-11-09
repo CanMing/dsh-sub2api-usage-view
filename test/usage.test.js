@@ -152,10 +152,14 @@ test('expired samples stay expired; disabled/unconfigured plugins make no upstre
 });
 
 test('active is explicitly selected and never uses force; passive Codex is refused', async () => {
-  const h = harness({ fetch: async url => Response.json({ code: 0, data: url.includes('/usage') ? { five_hour: { utilization: 20 } } : account }) });
+  // The stored snapshot timestamp is old; a live response must supply its own.
+  const staleAccount = { ...account, extra: { ...account.extra, codex_usage_updated_at: '2026-10-01T00:00:00Z' } };
+  const h = harness({ fetch: async url => Response.json({ code: 0, data: url.includes('/usage') ? { five_hour: { utilization: 20 }, updated_at: '2026-11-02T15:00:00Z' } : staleAccount }) });
   h.setConfig({ usageSource: 'active' });
   const active = await h.service.usage();
   assert.equal(active.windows.fiveHour.remainingPercent, 80);
+  assert.equal(active.observedAt, '2026-11-02T15:00:00.000Z');
+  assert.equal(active.stale, false);
   assert.match(h.calls[1].url, /usage\?source=active$/);
   h.setConfig({ usageSource: 'passive' });
   assert.match((await h.service.usage()).error, /不支持被动/);

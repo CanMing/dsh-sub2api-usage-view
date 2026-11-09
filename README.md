@@ -56,6 +56,8 @@ dsh plugin --profile desktop add /absolute/path/dsh-sub2api-usage-view-0.1.2.tgz
 
 默认 **自动快照** 直接读取账号 `extra` 中的已采集数据。先通过 sub2api 使用该账号发起正常聊天请求，sub2api 记录了上游响应头之后才会有数据。安装插件或点击刷新不会凭空生成新采样。账户不活跃时，后台快照可能较旧。
 
+部分 Codex 账号的被动快照只会写入 7 天窗口（`codex_7d_*`），此时 5 小时窗口在自动快照下显示「未知」。sub2api 的用量接口本身能返回两个窗口，把用量源改为 `active` 即可显示；主动接口自带采样时间，插件按该时间判断数据新旧，不会误标为旧数据。
+
 高级用量源：
 
 - `passive`：调用 sub2api 的 Claude 被动用量接口，只适用于 Anthropic 账号。部分 sub2api 版本会根据会话状态估算窗口用量。
