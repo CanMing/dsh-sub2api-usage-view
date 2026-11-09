@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2
+
+- 适配 DSH 0.2.2-rc.1：`engines.dsh`、凭据与启动环境 peer、Cordis 4.1、Schemastery 3.19 全部对齐当前桌面版；设置卡片回归测试改为执行 0.2.2-rc.1 的 SettingsFormModel。
+- 插件宿主代码与客户端槽位实现无需改动：`conversation.composer.dock`、`plugins.item`、`ctx.configForms`、`ctx.remote.credentials` 在 0.2.2-rc.1 中保持兼容（仅新增能力）。
+
 ## 0.1.1
 
 - 服务地址默认为空，用户必须填写自己的服务地址。
