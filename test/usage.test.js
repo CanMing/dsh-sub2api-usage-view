@@ -205,7 +205,7 @@ test('manual refresh selects the supported live source for Claude OAuth and save
 test('active query results without a sample timestamp are shown as query-only, not silently marked old', async () => {
   const noSample = { ...account, extra: {} };
   const h = harness({ fetch: async url => Response.json({ code: 0, data: url.includes('/usage?')
-    ? { updated_at: '2026-11-02T15:00:00Z', five_hour: { utilization: 25, resets_at: '2026-11-02T18:00:00Z' } }
+    ? { five_hour: { utilization: 25, resets_at: '2026-11-02T18:00:00Z' } }
     : noSample }) });
   const result = await h.service.usage({ refresh: true });
   assert.equal(result.windows.fiveHour.remainingPercent, 75);
