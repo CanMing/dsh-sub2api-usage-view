@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1
+
+- 在 DSH 0.2.2-rc.3 上重新验证：设置卡改用 rc.3 的 `SettingsFormModel` 执行，43 项回归测试全部通过。
+- 宿主链路（`conversation.composer.dock`、`plugins.item`、`ctx.configForms`、`ctx.remote.credentials`、`webServer.register`）在 rc.3 中无需改动。
+- 兼容性声明保持 `>=0.2.2-rc.1 <0.2.3-0`，rc.1 至 rc.3 均可安装。
+
 ## 0.2.0
 
 - 适配 DSH 0.2.2-rc.1：升级 Cordis 4.1、Schemastery 3.19 与客户端 UI 基元依赖。

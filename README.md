@@ -6,7 +6,7 @@
 5 小时 剩余 75% · 02:43:16 重置     7 天 剩余 37% · 2天 03:12:08 重置   ↻
 ```
 
-适用于 **DSH 桌面版 0.2.2-rc.1**，支持 sub2api 中的 Codex / OpenAI OAuth、Claude / Anthropic OAuth 与 setup-token 订阅账号。百分比示例仅用于说明界面。
+适用于 **DSH 桌面版 0.2.2-rc.3**（已在 rc.3 验证，rc.1 起可安装），支持 sub2api 中的 Codex / OpenAI OAuth、Claude / Anthropic OAuth 与 setup-token 订阅账号。百分比示例仅用于说明界面。
 
 ## 安装
 
@@ -16,12 +16,12 @@
 https://github.com/CanMing/dsh-sub2api-usage-view
 ```
 
-也可从 [Releases](https://github.com/CanMing/dsh-sub2api-usage-view/releases) 下载预构建 `dsh-sub2api-usage-view-0.2.0.tgz`，将其绝对路径填入安装框。包内已包含客户端构建产物，无需在安装时编译。
+也可从 [Releases](https://github.com/CanMing/dsh-sub2api-usage-view/releases) 下载预构建 `dsh-sub2api-usage-view-0.2.1.tgz`，将其绝对路径填入安装框。包内已包含客户端构建产物，无需在安装时编译。
 
 CLI 安装方式：
 
 ```sh
-dsh plugin --profile desktop add /absolute/path/dsh-sub2api-usage-view-0.2.0.tgz
+dsh plugin --profile desktop add /absolute/path/dsh-sub2api-usage-view-0.2.1.tgz
 ```
 
 按 DSH 提示重新加载或重启，然后在插件配置中打开「Sub2API 用量」。
@@ -85,7 +85,7 @@ npm test
 npm pack
 ```
 
-客户端以普通 ESM 源码维护，构建为 DSH `window.__ModuleLoader__.load` 模块。预构建产物提交到仓库，支持 GitHub 安装。插件严格声明兼容 DSH `0.2.2-rc.1`，其他版本需要重新验证。
+客户端以普通 ESM 源码维护，构建为 DSH `window.__ModuleLoader__.load` 模块。预构建产物提交到仓库，支持 GitHub 安装。插件声明兼容 DSH `>=0.2.2-rc.1 <0.2.3-0`，已在 `0.2.2-rc.3` 上验证；其他版本需要重新验证。
 
 测试使用模拟 sub2api 响应，覆盖百分比/时间单位、Codex 与 Claude 快照、未知数据、过期数据、请求缓存、密钥切换、同源访问限制、官方槽位、轮询清理和客户端构建。没有使用真实管理员密钥或消耗订阅额度。真实服务验收需要安装后在本机设置管理员 Key 和账号。
 

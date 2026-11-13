@@ -94,7 +94,7 @@ async function setup(t) {
 
 test('classic factory runs installed SettingsFormModel with real React', async (t) => {
   t.diagnostic(`SDK ${manifest.version}: ${loaded.mode}; scope and credential RPC are test fixtures, DOM is outside this test.`);
-  assert.equal(manifest.version, '0.2.2-rc.1');
+  assert.equal(manifest.version, '0.2.2-rc.3');
   const { controller } = await setup(t);
   assert.ok(controller.form instanceof loaded.module.SettingsFormModel);
   assert.equal(controller.form.shell().available, true); assert.equal(controller.store.getSnapshot().adminKeyConfigured, true);
