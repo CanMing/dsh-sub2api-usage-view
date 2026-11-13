@@ -16,12 +16,12 @@
 https://github.com/CanMing/dsh-sub2api-usage-view
 ```
 
-也可从 [Releases](https://github.com/CanMing/dsh-sub2api-usage-view/releases) 下载预构建 `dsh-sub2api-usage-view-0.1.2.tgz`，将其绝对路径填入安装框。包内已包含客户端构建产物，无需在安装时编译。
+也可从 [Releases](https://github.com/CanMing/dsh-sub2api-usage-view/releases) 下载预构建 `dsh-sub2api-usage-view-0.2.0.tgz`，将其绝对路径填入安装框。包内已包含客户端构建产物，无需在安装时编译。
 
 CLI 安装方式：
 
 ```sh
-dsh plugin --profile desktop add /absolute/path/dsh-sub2api-usage-view-0.1.2.tgz
+dsh plugin --profile desktop add /absolute/path/dsh-sub2api-usage-view-0.2.0.tgz
 ```
 
 按 DSH 提示重新加载或重启，然后在插件配置中打开「Sub2API 用量」。
